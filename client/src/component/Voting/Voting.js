@@ -29,7 +29,7 @@ export default class Voting extends Component {
       currentVoter: {
         address: undefined,
         name: null,
-        phone: null,
+        aadhar: null,
         hasVoted: false,
         isVerified: false,
         isRegistered: false,
@@ -98,7 +98,7 @@ export default class Voting extends Component {
         currentVoter: {
           address: voter.voterAddress,
           name: voter.name,
-          phone: voter.phone,
+          aadhar: voter.aadhar,
           hasVoted: voter.hasVoted,
           isVerified: voter.isVerified,
           isRegistered: voter.isRegistered,

@@ -25,12 +25,12 @@ export default class Registration extends Component {
       isElEnded: false,
       voterCount: undefined,
       voterName: "",
-      voterPhone: "",
+      voteraadhar: "",
       voters: [],
       currentVoter: {
         address: undefined,
         name: null,
-        phone: null,
+        aadhar: null,
         hasVoted: false,
         isVerified: false,
         isRegistered: false,
@@ -96,7 +96,7 @@ export default class Registration extends Component {
         this.state.voters.push({
           address: voter.voterAddress,
           name: voter.name,
-          phone: voter.phone,
+          aadhar: voter.aadhar,
           hasVoted: voter.hasVoted,
           isVerified: voter.isVerified,
           isRegistered: voter.isRegistered,
@@ -112,7 +112,7 @@ export default class Registration extends Component {
         currentVoter: {
           address: voter.voterAddress,
           name: voter.name,
-          phone: voter.phone,
+          aadhar: voter.aadhar,
           hasVoted: voter.hasVoted,
           isVerified: voter.isVerified,
           isRegistered: voter.isRegistered,
@@ -129,12 +129,12 @@ export default class Registration extends Component {
   updateVoterName = (event) => {
     this.setState({ voterName: event.target.value });
   };
-  updateVoterPhone = (event) => {
-    this.setState({ voterPhone: event.target.value });
+  updateVoteraadhar = (event) => {
+    this.setState({ voteraadhar: event.target.value });
   };
   registerAsVoter = async () => {
     await this.state.ElectionInstance.methods
-      .registerAsVoter(this.state.voterName, this.state.voterPhone)
+      .registerAsVoter(this.state.voterName, this.state.voteraadhar)
       .send({ from: this.state.account, gas: 1000000 });
     window.location.reload();
   };
@@ -187,27 +187,27 @@ export default class Registration extends Component {
                   </div>
                   <div className="div-li">
                     <label className={"label-r"}>
-                      Phone number <span style={{ color: "tomato" }}>*</span>
+                      aadhar number <span style={{ color: "tomato" }}>*</span>
                       <input
                         className={"input-r"}
                         type="number"
                         placeholder="eg. 9841234567"
-                        value={this.state.voterPhone}
-                        onChange={this.updateVoterPhone}
+                        value={this.state.voteraadhar}
+                        onChange={this.updateVoteraadhar}
                       />
                     </label>
                   </div>
                   <p className="note">
                     <span style={{ color: "tomato" }}> Note: </span>
-                    <br /> Make sure your account address and Phone number are
+                    <br /> Make sure your account address and aadhar number are
                     correct. <br /> Admin might not approve your account if the
-                    provided Phone number nub does not matches the account
+                    provided aadhar number nub does not matches the account
                     address registered in admins catalogue.
                   </p>
                   <button
                     className="btn-add"
                     disabled={
-                      this.state.voterPhone.length !== 10 ||
+                      this.state.voteraadhar.length !== 10 ||
                       this.state.currentVoter.isVerified
                     }
                     onClick={this.registerAsVoter}
@@ -268,8 +268,8 @@ export function loadCurrentVoter(voter, isRegistered) {
             <td>{voter.name}</td>
           </tr>
           <tr>
-            <th>Phone</th>
-            <td>{voter.phone}</td>
+            <th>aadhar</th>
+            <td>{voter.aadhar}</td>
           </tr>
           <tr>
             <th>Voted</th>
@@ -303,8 +303,8 @@ export function loadAllVoters(voters) {
               <td>{voter.name}</td>
             </tr>
             <tr>
-              <th>Phone</th>
-              <td>{voter.phone}</td>
+              <th>aadhar</th>
+              <td>{voter.aadhar}</td>
             </tr>
             <tr>
               <th>Voted</th>
