@@ -7,7 +7,7 @@ const Footer = () => (
     <div className="footer-block"></div>
     <div className="footer">
       <div className="footer-container">
-        <p>
+        {/* <p>
           View this project on{" "}
           <a
             className="profile"
@@ -18,8 +18,8 @@ const Footer = () => (
             GitHub
           </a>
           .
-        </p>
-        <p>
+        </p> */}
+        {/* <p>
           Made with <i className="fas fa-heartbeat" /> by{" "}
           <a
             className="profile"
@@ -30,7 +30,7 @@ const Footer = () => (
             Bibek Aryal
           </a>
           .
-        </p>
+        </p> */}
       </div>
     </div>
   </>
