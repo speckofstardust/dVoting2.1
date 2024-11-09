@@ -3,30 +3,53 @@ pragma solidity >=0.4.21 <0.9.0;
 
 contract Election {
     address public admin;
-    uint256 candidateCount;
-    uint256 voterCount;
-    bool start;
-    bool end;
+    uint256 public candidateCount;
+    uint256 public voterCount;
+    bool public start;
+    bool public end;
+
+    // Improved access control with role-based flexibility
+    mapping(address => bool) public admins;
+    mapping(address => bool) public moderators;
 
     constructor() public {
-        // Initilizing default values
         admin = msg.sender;
+        admins[admin] = true;
         candidateCount = 0;
         voterCount = 0;
         start = false;
         end = false;
     }
 
-    function getAdmin() public view returns (address) {
-        // Returns account address used to deploy contract (i.e. admin)
-        return admin;
-    }
-
+    // Modifier for admin-only access
     modifier onlyAdmin() {
-        // Modifier for only admin access
-        require(msg.sender == admin);
+        require(admins[msg.sender] == true, "Not an admin");
         _;
     }
+
+    // Modifier for moderator or admin access
+    modifier onlyModeratorOrAdmin() {
+        require(admins[msg.sender] == true || moderators[msg.sender] == true, "Not a moderator or admin");
+        _;
+    }
+    // Adding a moderator
+    function addModerator(address _moderator) public onlyAdmin {
+        moderators[_moderator] = true;
+    }
+
+    // Events for transparency
+    event ElectionStarted();
+    event ElectionEnded();
+    event CandidateAdded(uint256 candidateId, string header, string slogan);
+    event VoterRegistered(address voterAddress, bytes32 voterHash);
+    event VoteCasted(uint256 candidateId, address voterAddress);
+    event VoterVerified(address voterAddress, bool verified);
+
+    // Adding an admin
+    function addAdmin(address _admin) public onlyAdmin {
+        admins[_admin] = true;
+    }
+
     // Modeling a candidate
     struct Candidate {
         uint256 candidateId;
@@ -34,17 +57,17 @@ contract Election {
         string slogan;
         uint256 voteCount;
     }
+
     mapping(uint256 => Candidate) public candidateDetails;
 
-    // Adding new candidates
-    function addCandidate(
-        string memory _header,
-        string memory _slogan
-    )
-        public
-        // Only admin can add
-        onlyAdmin
-    {
+    // Adding a candidate with uniqueness check
+    function addCandidate(string memory _header, string memory _slogan) public onlyAdmin {
+        for (uint256 i = 0; i < candidateCount; i++) {
+            require(
+                keccak256(abi.encodePacked(candidateDetails[i].header)) != keccak256(abi.encodePacked(_header)),
+                "Candidate already exists"
+            );
+        }
         Candidate memory newCandidate = Candidate({
             candidateId: candidateCount,
             header: _header,
@@ -52,10 +75,11 @@ contract Election {
             voteCount: 0
         });
         candidateDetails[candidateCount] = newCandidate;
+        emit CandidateAdded(candidateCount, _header, _slogan);
         candidateCount += 1;
     }
 
-    // Modeling a Election Details
+    // Election Details
     struct ElectionDetails {
         string adminName;
         string adminEmail;
@@ -63,7 +87,8 @@ contract Election {
         string electionTitle;
         string organizationTitle;
     }
-    ElectionDetails electionDetails;
+
+    ElectionDetails public electionDetails;
 
     function setElectionDetails(
         string memory _adminName,
@@ -71,11 +96,7 @@ contract Election {
         string memory _adminTitle,
         string memory _electionTitle,
         string memory _organizationTitle
-    )
-        public
-        // Only admin can add
-        onlyAdmin
-    {
+    ) public onlyAdmin {
         electionDetails = ElectionDetails(
             _adminName,
             _adminEmail,
@@ -85,102 +106,82 @@ contract Election {
         );
         start = true;
         end = false;
+        emit ElectionStarted();
     }
 
-    // Get Elections details
-    function getElectionDetails()
-        public
-        view
-        returns (
-            string memory adminName,
-            string memory adminEmail,
-            string memory adminTitle,
-            string memory electionTitle,
-            string memory organizationTitle
-        )
-    {
-        return (
-            electionDetails.adminName,
-            electionDetails.adminEmail,
-            electionDetails.adminTitle,
-            electionDetails.electionTitle,
-            electionDetails.organizationTitle
-        );
+    // End election with an event
+    function endElection() public onlyAdmin {
+        require(start == true, "Election has not started");
+        require(end == false, "Election has already ended");
+        end = true;
+        start = false;
+        emit ElectionEnded();
     }
 
-    // Get candidates count
-    function getTotalCandidate() public view returns (uint256) {
-        // Returns total number of candidates
-        return candidateCount;
-    }
-
-    // Get voters count
-    function getTotalVoter() public view returns (uint256) {
-        // Returns total number of voters
-        return voterCount;
-    }
-
-    // Modeling a voter
+    // Modeling a voter with hashed details for privacy
     struct Voter {
         address voterAddress;
-        string name;
-        string aadhar;
+        bytes32 voterHash; // Storing hashed info (name and aadhar)
         bool isVerified;
         bool hasVoted;
         bool isRegistered;
     }
-    address[] public voters; // Array of address to store address of voters
+
+    address[] public voters; // Array to store voter addresses
     mapping(address => Voter) public voterDetails;
 
-    // Request to be added as voter
+    // Register as voter with hashed information for privacy
     function registerAsVoter(string memory _name, string memory _aadhar) public {
+        bytes32 voterHash = keccak256(abi.encodePacked(_name, _aadhar));
         Voter memory newVoter = Voter({
             voterAddress: msg.sender,
-            name: _name,
-            aadhar: _aadhar,
-            hasVoted: false,
+            voterHash: voterHash,
             isVerified: false,
+            hasVoted: false,
             isRegistered: true
         });
         voterDetails[msg.sender] = newVoter;
         voters.push(msg.sender);
         voterCount += 1;
+        emit VoterRegistered(msg.sender, voterHash);
     }
 
-    // Verify voter
-    function verifyVoter(
-        bool _verifedStatus,
-        address voterAddress
-    )
-        public
-        // Only admin can verify
-        onlyAdmin
-    {
-        voterDetails[voterAddress].isVerified = _verifedStatus;
+    // Verify voter by admin with event logging
+    function verifyVoter(address _voterAddress, bool _verifiedStatus) public onlyModeratorOrAdmin {
+        require(voterDetails[_voterAddress].isRegistered, "Voter is not registered");
+        voterDetails[_voterAddress].isVerified = _verifiedStatus;
+        emit VoterVerified(_voterAddress, _verifiedStatus);
     }
 
-    // Vote
-    function vote(uint256 candidateId) public {
-        require(voterDetails[msg.sender].hasVoted == false);
-        require(voterDetails[msg.sender].isVerified == true);
-        require(start == true);
-        require(end == false);
-        candidateDetails[candidateId].voteCount += 1;
+    // Voting with checks
+    function vote(uint256 _candidateId) public {
+        //admins and moderators need to vote with a voter account
+        require(!admins[msg.sender], "Admin cannot vote");
+        require(!moderators[msg.sender], "Moderator cannot vote");
+        
+        require(voterDetails[msg.sender].isRegistered, "Voter is not registered");
+        require(voterDetails[msg.sender].isVerified, "Voter is not verified");
+        require(!voterDetails[msg.sender].hasVoted, "Voter has already voted");
+        require(start == true, "Election is not active");
+        require(end == false, "Election has ended");
+        require(_candidateId < candidateCount, "Invalid candidate ID");
+
+        candidateDetails[_candidateId].voteCount += 1;
         voterDetails[msg.sender].hasVoted = true;
+        emit VoteCasted(_candidateId, msg.sender);
     }
 
-    // End election
-    function endElection() public onlyAdmin {
-        end = true;
-        start = false;
-    }
-
-    // Get election start and end values
-    function getStart() public view returns (bool) {
-        return start;
-    }
-
-    function getEnd() public view returns (bool) {
-        return end;
+    // Get candidate with the highest votes (for election result retrieval)
+    function getWinningCandidate() public view returns (uint256 candidateId, string memory header, uint256 voteCount) {
+        uint256 highestVoteCount = 0;
+        uint256 winningCandidateId = 0;
+        for (uint256 i = 0; i < candidateCount; i++) {
+            if (candidateDetails[i].voteCount > highestVoteCount) {
+                highestVoteCount = candidateDetails[i].voteCount;
+                winningCandidateId = i;
+            }
+        }
+        Candidate memory winningCandidate = candidateDetails[winningCandidateId];
+        return (winningCandidateId, winningCandidate.header, winningCandidate.voteCount);
     }
 }
