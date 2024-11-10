@@ -109,6 +109,27 @@ contract Election {
         emit ElectionStarted();
     }
 
+    //get election details
+    function getElectionDetails()
+        public
+        view
+        returns (
+            string memory adminName,
+            string memory adminEmail,
+            string memory adminTitle,
+            string memory electionTitle,
+            string memory organizationTitle
+        )
+    {
+        return (
+            electionDetails.adminName,
+            electionDetails.adminEmail,
+            electionDetails.adminTitle,
+            electionDetails.electionTitle,
+            electionDetails.organizationTitle
+        );
+    }
+
     // End election with an event
     function endElection() public onlyAdmin {
         require(start == true, "Election has not started");
