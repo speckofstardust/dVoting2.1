@@ -21,6 +21,15 @@ contract Election {
         end = false;
     }
 
+    function getAdmin() public view returns (address) {
+        // Returns account address used to deploy contract (i.e. admin)
+        return admin;
+    }
+
+    function getModerator(address _moderator) public view returns (bool) {
+        return moderators[_moderator];
+    }
+    
     // Modifier for admin-only access
     modifier onlyAdmin() {
         require(admins[msg.sender] == true, "Not an admin");
