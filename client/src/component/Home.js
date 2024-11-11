@@ -26,6 +26,7 @@ export default class Home extends Component {
       account: null,
       web3: null,
       isAdmin: false,
+      isMod: false,
       elStarted: false,
       elEnded: false,
       elDetails: {},
@@ -66,6 +67,11 @@ export default class Home extends Component {
         this.setState({ isAdmin: true });
       }
 
+      const moderator = await this.state.ElectionInstance.methods.getModerator().call();
+      if (this.state.account === moderator) {
+        this.setState({ isMod: true });
+      }
+
       // Get election start and end values
       const start = await this.state.ElectionInstance.methods.getStart().call();
       this.setState({ elStarted: start });
@@ -73,10 +79,8 @@ export default class Home extends Component {
       this.setState({ elEnded: end });
 
       // Getting election details from the contract
-      const electionDetails = await this.state.ElectionInstance.methods
-      .getElectionDetails()
-      .call();
-      
+      const electionDetails = await this.state.ElectionInstance.methods.getElectionDetails().call();
+
       this.setState({
         elDetails: {
           adminName: electionDetails.adminName,
@@ -94,6 +98,7 @@ export default class Home extends Component {
       console.error(error);
     }
   };
+
   // end election
   endElection = async () => {
     await this.state.ElectionInstance.methods
@@ -101,6 +106,7 @@ export default class Home extends Component {
       .send({ from: this.state.account, gas: 1000000 });
     window.location.reload();
   };
+
   // register and start election
   registerElection = async (data) => {
     await this.state.ElectionInstance.methods
@@ -134,7 +140,7 @@ export default class Home extends Component {
           {!this.state.elStarted & !this.state.elEnded ? (
             <div className="container-item info">
               <center>
-                <h3>The election has not been initialize.</h3>
+                <h3>The election has not been initialized.</h3>
                 {this.state.isAdmin ? (
                   <p>Set up the election.</p>
                 ) : (
@@ -144,9 +150,14 @@ export default class Home extends Component {
             </div>
           ) : null}
         </div>
+        {/* Conditional rendering for Admin, Moderator, or User views */}
         {this.state.isAdmin ? (
           <>
             <this.renderAdminHome />
+          </>
+        ) : this.state.isMod ? (
+          <>
+            <this.renderModHome />
           </>
         ) : this.state.elStarted ? (
           <>
@@ -304,3 +315,15 @@ export default class Home extends Component {
     return <AdminHome />;
   };
 }
+
+//rendering moderator home with just the verification page
+renderModHome = () => {
+  return (
+    <div className="container-main">
+      <div className="container-item center-items">
+        <h3>Moderator Verification</h3>
+      </div>
+      <Verification />
+    </div>
+  );
+};
